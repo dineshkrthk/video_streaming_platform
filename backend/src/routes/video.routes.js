@@ -67,7 +67,7 @@ router.get("/play/:id", auth, async (req,res)=>{
 
 // Upload video
 router.post("/upload", auth, upload.single("video"), async (req, res) => {
-  console.log("Uploaded file:", req.file);
+  console.log("REQ FILE:", req.file);
 
   if (!req.file) {
     return res.status(400).json({ msg: "No file uploaded" });
@@ -77,14 +77,14 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
     originalName: req.file.originalname,
     ownerId: req.user.id,
     tenantId: req.user.tenantId,
-    // ✅ Cloudinary values
     videoUrl: req.file.path,
     cloudinaryId: req.file.public_id,
-
     status: "uploaded"
   });
-  const io = req.app.get("io");
-  //processVideo(video._id, io); 
+
+  // ❌ AI disabled for now
+  // processVideo(video._id, req.app.get("io"));
+
   res.json(video);
 });
 
