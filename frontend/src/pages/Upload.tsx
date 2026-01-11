@@ -19,6 +19,7 @@ export default function Upload() {
 
   try {
     const res = await api.post("/api/videos/upload", form, {
+       timeout: 0,
       onUploadProgress: (e) => {
         if (e.total) {
           setProgress(Math.round((e.loaded * 100) / e.total));
