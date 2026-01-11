@@ -6,9 +6,12 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
     folder: "videos",
-    resource_type: "video",     // ✅ required for mp4
+    resource_type: "video",
     public_id: Date.now() + "-" + file.originalname.split(".")[0],
-    format: "mp4"
+
+    // ✅ CRITICAL FIX
+    eager: [],
+    eager_async: true
   })
 });
 
