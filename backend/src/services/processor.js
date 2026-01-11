@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import FormData from "form-data";
 import Video from "../models/Video.js";
 
+console.log("🧠 AI PROCESS STARTED:", videoId);
 export const processVideo = async (videoId, io) => {
   let videoPath, framesDir;
 
@@ -45,6 +46,8 @@ export const processVideo = async (videoId, io) => {
       );
     });
 
+    console.log("📤 Sending frame to AI:", frame);
+
     // --- AI ANALYSIS ---
     const frames = fs.readdirSync(framesDir);
     let maxScore = 0;
@@ -66,6 +69,8 @@ export const processVideo = async (videoId, io) => {
       );
 
       maxScore = Math.max(maxScore, res.data.score);
+      console.log("📊 AI SCORE:", res.data.score);
+
     }
 
     const status = maxScore > 0.6 ? "flagged" : "safe";

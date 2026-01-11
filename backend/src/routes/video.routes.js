@@ -82,9 +82,10 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
     status: "uploaded"
   });
 
-  // ❌ AI disabled for now
-  // processVideo(video._id, req.app.get("io"));
-
+  const io = req.app.get("io");
+  setImmediate(() => {
+    processVideo(video._id, io);
+  });
   res.json(video);
 });
 
