@@ -47,14 +47,14 @@ export const processVideo = async (videoId, io) => {
       );
     });
 
-    console.log("📤 Sending frame to AI:", frame);
-
     // --- AI ANALYSIS ---
     const frames = fs.readdirSync(framesDir);
     let maxScore = 0;
 
     for (const frame of frames) {
       const framePath = path.join(framesDir, frame);
+
+      console.log("📤 Sending frame to AI:", frame);
 
       const form = new FormData();
       form.append("image", fs.createReadStream(framePath));
@@ -65,7 +65,8 @@ export const processVideo = async (videoId, io) => {
         {
           headers: form.getHeaders(),
           maxBodyLength: Infinity,
-          maxContentLength: Infinity
+          maxContentLength: Infinity,
+          timeout: 60000
         }
       );
 
