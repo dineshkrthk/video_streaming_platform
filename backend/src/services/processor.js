@@ -27,7 +27,7 @@ export const processVideo = async (videoId, io) => {
     const framePath = `${framesDir}/${frame}`;
     const form = new FormData();
     form.append("image", fs.createReadStream(framePath));
-    const res = await axios.post("http://127.0.0.1:5001/analyze", form, {
+    const res = await axios.post(process.env.AI_SERVICE_URL, form, {
       headers: form.getHeaders(),
       maxBodyLength: Infinity,
       maxContentLength: Infinity
