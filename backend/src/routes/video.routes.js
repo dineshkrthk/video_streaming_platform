@@ -67,7 +67,7 @@ router.get("/play/:id", auth, async (req,res)=>{
   const token = req.headers.authorization.split(" ")[1];
 
   res.json({
-    url: `http://localhost:4000/api/videos/stream/${video._id}?token=${token}`
+    url: `${process.env.BASE_URL}/api/videos/stream/${video._id}?token=${token}`
   });
 });
 
