@@ -5,26 +5,31 @@ import { exec } from "child_process";
 import FormData from "form-data";
 import Video from "../models/Video.js";
 
-
 export const processVideo = async (videoId, io) => {
   console.log("🧠 AI PROCESS STARTED:", videoId);
-  let videoPath, framesDir;
+
+  let videoPath;
+  let framesDir;
 
   try {
+    // 1️⃣ Fetch video record
     const video = await Video.findById(videoId);
     if (!video) return;
 
-    // Update status
-    await Video.updateOne({ _id: videoId }, { status: "processing" });
+    // 2️⃣ Update status → processing
+    await Video.updateOne(
+      { _id: videoId },
+      { status: "processing" }
+    );
     io.emit("progress", { videoId, status: "processing" });
 
-    // --- TEMP PATHS (Render-safe) ---
+    // 3️⃣ Temp paths (Render-safe)
     videoPath = `/tmp/video-${videoId}.mp4`;
     framesDir = `/tmp/frames-${videoId}`;
 
     await fs.promises.mkdir(framesDir, { recursive: true });
 
-    // --- DOWNLOAD VIDEO FROM CLOUDINARY ---
+    // 4️⃣ Download video from Cloudinary
     const response = await axios({
       method: "GET",
       url: video.videoUrl,
@@ -39,7 +44,7 @@ export const processVideo = async (videoId, io) => {
       writer.on("error", reject);
     });
 
-    // --- EXTRACT FRAMES (1 FPS) ---
+    // 5️⃣ Extract frames (1 frame per second)
     await new Promise((resolve, reject) => {
       exec(
         `ffmpeg -i "${videoPath}" -vf fps=1 ${framesDir}/frame_%03d.jpg`,
@@ -47,8 +52,11 @@ export const processVideo = async (videoId, io) => {
       );
     });
 
-    // --- AI ANALYSIS ---
-    const frames = fs.readdirSync(framesDir);
+    // 6️⃣ AI analysis
+    const frames = fs
+      .readdirSync(framesDir)
+      .filter(f => f.endsWith(".jpg"));
+
     let maxScore = 0;
 
     for (const frame of frames) {
@@ -60,32 +68,36 @@ export const processVideo = async (videoId, io) => {
       form.append("image", fs.createReadStream(framePath));
 
       const res = await axios.post(
-        process.env.AI_SERVICE_URL + "/analyze",
+        `${process.env.AI_SERVICE_URL}/analyze`,
         form,
         {
           headers: form.getHeaders(),
+          timeout: 60000, // important for Render cold starts
           maxBodyLength: Infinity,
-          maxContentLength: Infinity,
-          timeout: 60000
+          maxContentLength: Infinity
         }
       );
 
-      maxScore = Math.max(maxScore, res.data.score);
       console.log("📊 AI SCORE:", res.data.score);
-
+      maxScore = Math.max(maxScore, res.data.score);
     }
 
-    const status = maxScore > 0.6 ? "flagged" : "safe";
+    // 7️⃣ Final status
+    const finalStatus = maxScore > 0.6 ? "flagged" : "safe";
 
     await Video.updateOne(
       { _id: videoId },
-      { status, sensitivityScore: maxScore }
+      {
+        status: finalStatus,
+        sensitivityScore: maxScore
+      }
     );
 
-    io.emit("progress", { videoId, status });
+    io.emit("progress", { videoId, status: finalStatus });
   } catch (err) {
-    console.error("Video processing failed:", err);
+    console.error("❌ Video processing failed:", err);
 
+    // Fail safe: block video if AI fails
     await Video.updateOne(
       { _id: videoId },
       { status: "flagged", sensitivityScore: 1 }
@@ -93,13 +105,16 @@ export const processVideo = async (videoId, io) => {
 
     io.emit("progress", { videoId, status: "flagged" });
   } finally {
-    // --- CLEANUP ---
-    if (videoPath && fs.existsSync(videoPath)) {
-      fs.unlinkSync(videoPath);
-    }
-
-    if (framesDir && fs.existsSync(framesDir)) {
-      fs.rmSync(framesDir, { recursive: true, force: true });
+    // 8️⃣ Cleanup temp files
+    try {
+      if (videoPath && fs.existsSync(videoPath)) {
+        fs.unlinkSync(videoPath);
+      }
+      if (framesDir && fs.existsSync(framesDir)) {
+        fs.rmSync(framesDir, { recursive: true, force: true });
+      }
+    } catch (cleanupErr) {
+      console.error("⚠️ Cleanup failed:", cleanupErr);
     }
   }
 };
