@@ -73,6 +73,11 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
     return res.status(400).json({ msg: "No file uploaded" });
   }
 
+   // ✅ RBAC: editor & admin can upload
+  if (!["editor", "admin"].includes(req.user.role)) {
+    return res.status(403).json({ msg: "Not allowed to upload" });
+  }
+
   const video = await Video.create({
     originalName: req.file.originalname,
     ownerId: req.user.id,
