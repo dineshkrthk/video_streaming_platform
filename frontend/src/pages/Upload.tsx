@@ -9,15 +9,16 @@ export default function Upload() {
   const navigate = useNavigate();
 
   const upload = async () => {
-    if (!file) return;
+  if (!file) return;
 
-    const form = new FormData();
-    form.append("video", file);
+  const form = new FormData();
+  form.append("video", file);
 
-    setUploading(true);
-    setProgress(0);
+  setUploading(true);
+  setProgress(0);
 
-    await api.post("/api/videos/upload", form, {
+  try {
+    const res = await api.post("/api/videos/upload", form, {
       onUploadProgress: (e) => {
         if (e.total) {
           setProgress(Math.round((e.loaded * 100) / e.total));
@@ -25,10 +26,16 @@ export default function Upload() {
       }
     });
 
-    setUploading(false);
+    console.log("UPLOAD RESPONSE 👉", res.data);
     alert("Upload successful!");
     navigate("/");
-  };
+  } catch (err: any) {
+    console.error("UPLOAD ERROR 👉", err.response?.data || err);
+    alert(err.response?.data?.msg || "Upload failed");
+  } finally {
+    setUploading(false);
+  }
+};
 
   return (
     <div className="upload-container">
