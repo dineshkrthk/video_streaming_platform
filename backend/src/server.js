@@ -11,12 +11,12 @@ import { connectDB } from "./config/db.js";
 
 dotenv.config();
 
-//Ensure DB connects before server starts
+// Ensure DB connects before server starts
 await connectDB();
 
 const app = express();
 
-// ✅ CORS (safe for Vercel / Render)
+// CORS
 app.use(
   cors({
     origin: "*",
@@ -27,6 +27,7 @@ app.use(
 
 app.use(express.json());
 
+// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/videos", videoRoutes);
 
@@ -34,10 +35,17 @@ app.get("/", (req, res) => {
   res.send("Video Platform Backend Running 🚀");
 });
 
-// Create HTTP server
+// ✅ GLOBAL ERROR HANDLER (MUST be here)
+app.use((err, req, res, next) => {
+  console.error("GLOBAL ERROR:", err);
+  res.status(500).json({
+    msg: err.message || "Internal server error"
+  });
+});
+
+// HTTP + Socket.IO
 const server = http.createServer(app);
 
-// Socket.IO
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -48,9 +56,8 @@ const io = new Server(server, {
 app.set("io", io);
 socketHandler(io);
 
-//PORT (Render injects this)
+// Start server
 const PORT = process.env.PORT || 4000;
-
 server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
