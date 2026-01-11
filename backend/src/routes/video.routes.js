@@ -79,7 +79,7 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
     tenantId: req.user.tenantId,
     videoUrl: req.file.path,
     cloudinaryId: req.file.public_id,
-    status: "safe" // for demo
+    status: "flagged" // for demo
   });
 
   //disabled for demo stability
