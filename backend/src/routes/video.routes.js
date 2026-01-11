@@ -79,13 +79,15 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
     tenantId: req.user.tenantId,
     videoUrl: req.file.path,
     cloudinaryId: req.file.public_id,
-    status: "uploaded"
+    status: "safe" // for demo
   });
 
-  const io = req.app.get("io");
-  setImmediate(() => {
-    processVideo(video._id, io);
-  });
+  //disabled for demo stability
+  // const io = req.app.get("io");
+  // setImmediate(() => {
+  //   processVideo(video._id, io);
+  // });
+  
   res.json(video);
 });
 
