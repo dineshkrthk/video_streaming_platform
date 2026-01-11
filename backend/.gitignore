@@ -1,7 +1,8 @@
 node_modules/
 .env
 dist/
-
+uploads/
+frames/
 # Python
 venv/
 __pycache__/
