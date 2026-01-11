@@ -45,7 +45,7 @@ export default function VideoCard({
             className="btn btn-danger"
             onClick={onDelete}
           >
-            🗑 Delete
+           Delete
           </button>
         )}
       </div>

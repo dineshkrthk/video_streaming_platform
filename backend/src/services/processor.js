@@ -6,9 +6,7 @@ import FormData from "form-data";
 import sharp from "sharp";
 import Video from "../models/Video.js";
 
-/**
- * Uniformly sample N items across an array
- */
+//  Uniformly sample N items across an array 
 function uniformSample(arr, count) {
   if (arr.length <= count) return arr;
 
@@ -22,7 +20,7 @@ function uniformSample(arr, count) {
 }
 
 export const processVideo = async (videoId, io) => {
-  console.log("🧠 AI PROCESS STARTED:", videoId);
+  console.log("AI PROCESS STARTED:", videoId);
 
   let videoPath;
   let framesDir;
@@ -31,20 +29,20 @@ export const processVideo = async (videoId, io) => {
   const BORDERLINE = 0.3;
 
   try {
-    // 1️⃣ Fetch video
+    //Fetch video
     const video = await Video.findById(videoId);
     if (!video) return;
 
-    // 2️⃣ Mark processing
+    //Mark processing
     await Video.updateOne({ _id: videoId }, { status: "processing" });
     io.emit("progress", { videoId, status: "processing" });
 
-    // 3️⃣ Temp paths (Render-safe)
+    //Temp paths (Render-safe)
     videoPath = `/tmp/video-${videoId}.mp4`;
     framesDir = `/tmp/frames-${videoId}`;
     await fs.promises.mkdir(framesDir, { recursive: true });
 
-    // 4️⃣ Download video
+    //Download video
     const response = await axios({
       method: "GET",
       url: video.videoUrl,
@@ -59,7 +57,7 @@ export const processVideo = async (videoId, io) => {
       writer.on("error", reject);
     });
 
-    // 5️⃣ Extract frames (1 FPS)
+    //Extract frames (1 FPS)
     await new Promise((resolve, reject) => {
       exec(
         `ffmpeg -i "${videoPath}" -vf fps=1 ${framesDir}/frame_%03d.jpg`,
@@ -67,14 +65,14 @@ export const processVideo = async (videoId, io) => {
       );
     });
 
-    // 6️⃣ Collect frames
+    // Collect frames
     const allFrames = fs
       .readdirSync(framesDir)
       .filter(f => f.endsWith(".jpg"));
 
     let maxScore = 0;
 
-    // 7️⃣ Decide sampling strategy
+    // Decide sampling strategy
     let tier1Frames = [];
     if (allFrames.length <= 30) {
       tier1Frames = allFrames; // small video
@@ -103,14 +101,14 @@ export const processVideo = async (videoId, io) => {
         );
 
         const score = res.data.score;
-        console.log("📊 AI SCORE:", score);
+        console.log("AI SCORE:", score);
 
         maxScore = Math.max(maxScore, score);
 
         // Early exit if NSFW
         if (score >= THRESHOLD) break;
       } catch (err) {
-        console.error("❌ AI failure (tier1):", err.message);
+        console.error("AI failure (tier1):", err.message);
         maxScore = 1; // fail-closed
         break;
       }
@@ -122,7 +120,7 @@ export const processVideo = async (videoId, io) => {
       maxScore < THRESHOLD &&
       allFrames.length > tier1Frames.length
     ) {
-      console.log("⚠️ Borderline detected, escalating scan");
+      console.log("Borderline detected, escalating scan");
 
       const remaining = allFrames.filter(f => !tier1Frames.includes(f));
       const tier2Frames = uniformSample(remaining, 10);
@@ -147,20 +145,20 @@ export const processVideo = async (videoId, io) => {
           );
 
           const score = res.data.score;
-          console.log("📊 AI SCORE (tier2):", score);
+          console.log(" AI SCORE (tier2):", score);
 
           maxScore = Math.max(maxScore, score);
 
           if (score >= THRESHOLD) break;
         } catch (err) {
-          console.error("❌ AI failure (tier2):", err.message);
+          console.error("AI failure (tier2):", err.message);
           maxScore = 1;
           break;
         }
       }
     }
 
-    // 8️⃣ Final decision (fail-closed)
+    //Final decision (fail-closed)
     const finalStatus = maxScore >= THRESHOLD ? "flagged" : "safe";
 
     await Video.updateOne(
@@ -170,7 +168,7 @@ export const processVideo = async (videoId, io) => {
 
     io.emit("progress", { videoId, status: finalStatus });
   } catch (err) {
-    console.error("❌ Video processing failed:", err);
+    console.error("Video processing failed:", err);
 
     await Video.updateOne(
       { _id: videoId },
@@ -179,7 +177,7 @@ export const processVideo = async (videoId, io) => {
 
     io.emit("progress", { videoId, status: "flagged" });
   } finally {
-    // 9️⃣ Cleanup
+    // Cleanup
     try {
       if (videoPath && fs.existsSync(videoPath)) fs.unlinkSync(videoPath);
       if (framesDir && fs.existsSync(framesDir)) {

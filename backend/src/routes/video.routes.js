@@ -17,24 +17,20 @@ router.delete("/:id", auth, async (req, res) => {
       return res.status(404).json({ msg: "Video not found" });
     }
 
-    // 🔐 Tenant isolation
     if (video.tenantId !== req.user.tenantId) {
       return res.status(403).json({ msg: "Forbidden" });
     }
 
-    // 🔑 RBAC: Admin + Editor only
     if (!["admin", "editor"].includes(req.user.role)) {
       return res.status(403).json({ msg: "Not allowed" });
     }
 
-    // ☁️ Delete from Cloudinary
     if (video.cloudinaryId) {
       await cloudinary.uploader.destroy(video.cloudinaryId, {
         resource_type: "video"
       });
     }
 
-    // 🗑 Delete DB record
     await video.deleteOne();
 
     res.json({ msg: "Video deleted successfully" });
@@ -73,7 +69,6 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
     return res.status(400).json({ msg: "No file uploaded" });
   }
 
-   // ✅ RBAC: editor & admin can upload
   if (!["editor", "admin"].includes(req.user.role)) {
     return res.status(403).json({ msg: "Not allowed to upload" });
   }

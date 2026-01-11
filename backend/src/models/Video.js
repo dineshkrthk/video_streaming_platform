@@ -13,7 +13,7 @@ const videoSchema = new mongoose.Schema({
 
   sensitivityScore: Number,
   videoUrl: String,      // streaming URL
-  cloudinaryId: String, // public_id for delete
+  cloudinaryId: String, 
 
   createdAt: { type: Date, default: Date.now }
 });

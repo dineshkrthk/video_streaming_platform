@@ -8,8 +8,6 @@ const storage = new CloudinaryStorage({
     folder: "videos",
     resource_type: "video",
     public_id: Date.now() + "-" + file.originalname.split(".")[0],
-
-    // ✅ CRITICAL FIX
     eager: [],
     eager_async: true
   })
