@@ -10,8 +10,11 @@ const videoSchema = new mongoose.Schema({
     enum: ["uploaded", "processing", "safe", "flagged"],
     default: "uploaded"
   },
+
   sensitivityScore: Number,
-  path: String,
+  videoUrl: String,      // streaming URL
+  cloudinaryId: String, // public_id for delete
+
   createdAt: { type: Date, default: Date.now }
 });
 

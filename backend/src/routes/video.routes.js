@@ -4,9 +4,7 @@ import { processVideo } from "../services/processor.js";
 import { upload } from "../config/multer.js";
 import { auth } from "../middleware/auth.js";
 import Video from "../models/Video.js";
-import fs from "fs";
-import path from "path";
-import jwt from "jsonwebtoken";
+import cloudinary from "../config/cloudinary.js";
 
 const router = express.Router();
 
@@ -18,27 +16,25 @@ router.delete("/:id", auth, async (req, res) => {
     if (!video) {
       return res.status(404).json({ msg: "Video not found" });
     }
-    //Tenant isolation
+
+    // 🔐 Tenant isolation
     if (video.tenantId !== req.user.tenantId) {
       return res.status(403).json({ msg: "Forbidden" });
     }
-    //RBAC
+
+    // 🔑 RBAC: Admin + Editor only
     if (!["admin", "editor"].includes(req.user.role)) {
       return res.status(403).json({ msg: "Not allowed" });
     }
-    //Delete video file
-    if (video.path && fs.existsSync(video.path)) {
-      fs.unlinkSync(video.path);
+
+    // ☁️ Delete from Cloudinary
+    if (video.cloudinaryId) {
+      await cloudinary.uploader.destroy(video.cloudinaryId, {
+        resource_type: "video"
+      });
     }
-    //Delete frames directory (if created)
-    const framesDir = path.join(
-      "frames",
-      video._id.toString()
-    );
-    if (fs.existsSync(framesDir)) {
-      fs.rmSync(framesDir, { recursive: true, force: true });
-    }
-    //Remove DB record
+
+    // 🗑 Delete DB record
     await video.deleteOne();
 
     res.json({ msg: "Video deleted successfully" });
@@ -66,64 +62,7 @@ router.get("/play/:id", auth, async (req,res)=>{
 
   const token = req.headers.authorization.split(" ")[1];
 
-  res.json({
-    url: `${process.env.BASE_URL}/api/videos/stream/${video._id}?token=${token}`
-  });
-});
-
-router.get("/stream/:id", async (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1] || req.query.token;
-
-  if (!token) {
-    return res.status(401).json({ msg: "No token" });
-  }
-
-  let decoded;
-  try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
-  } catch {
-    return res.status(401).json({ msg: "Invalid token" });
-  }
-
-  req.user = decoded;
-
-  const video = await Video.findById(req.params.id);
-
-  // Tenant isolation
-  if (video.tenantId !== req.user.tenantId) {
-    return res.status(403).json({ msg: "Forbidden" });
-  }
-
-  // Block flagged videos for non-admins
-  if (video.status === "flagged" && req.user.role !== "admin") {
-    return res.status(403).json({ msg: "Video under review" });
-  }
-
-  const videoPath = path.resolve(video.path);
-  const stat = fs.statSync(videoPath);
-  const fileSize = stat.size;
-  const range = req.headers.range;
-
-  if (!range) {
-    return res.status(416).send("Range header required");
-  }
-
-  const parts = range.replace(/bytes=/, "").split("-");
-  const start = parseInt(parts[0], 10);
-  const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-  const chunkSize = end - start + 1;
-
-  const file = fs.createReadStream(videoPath, { start, end });
-
-  const headers = {
-    "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-    "Accept-Ranges": "bytes",
-    "Content-Length": chunkSize,
-    "Content-Type": "video/mp4"
-  };
-
-  res.writeHead(206, headers);
-  file.pipe(res);
+  res.json({ url: video.videoUrl });
 });
 
 // Upload video
@@ -133,10 +72,10 @@ router.post("/upload", auth, upload.single("video"), async (req, res) => {
     originalName: req.file.originalname,
     ownerId: req.user.id,
     tenantId: req.user.tenantId,
-    path: req.file.path,
+    videoUrl: req.file.path,       
+    cloudinaryId: req.file.public_id,
     status: "uploaded"
   });
-
   const io = req.app.get("io");
   processVideo(video._id, io);
   res.json(video);
