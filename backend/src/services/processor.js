@@ -5,8 +5,9 @@ import { exec } from "child_process";
 import FormData from "form-data";
 import Video from "../models/Video.js";
 
-console.log("🧠 AI PROCESS STARTED:", videoId);
+
 export const processVideo = async (videoId, io) => {
+  console.log("🧠 AI PROCESS STARTED:", videoId);
   let videoPath, framesDir;
 
   try {
