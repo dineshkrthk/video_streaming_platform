@@ -36,7 +36,6 @@ export default function Dashboard() {
     };
   }, []);
 
-  //Delete (Admin + Editor only)
   const deleteVideo = async (id: string) => {
     if (!window.confirm("Delete this video?")) return;
     await api.delete(`/api/videos/${id}`);
@@ -45,7 +44,6 @@ export default function Dashboard() {
 
   return (
     <div className="container">
-      {/* Header */}
       <div className="header">
         <div>
           <h2>{role === "admin" ? "Admin Dashboard" : "My Videos"}</h2>
@@ -71,7 +69,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Video List */}
       {videos.length === 0 && <p>No videos available.</p>}
 
       {videos.map((video) => (
@@ -93,7 +90,6 @@ export default function Dashboard() {
         />
       ))}
 
-      {/* Modal Player */}
       {playUrl && (
         <VideoPlayer url={playUrl} onClose={() => setPlayUrl(null)} />
       )}

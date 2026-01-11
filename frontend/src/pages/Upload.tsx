@@ -33,8 +33,6 @@ export default function Upload() {
   return (
     <div className="upload-container">
       <h2>Upload Video</h2>
-
-      {/* Drag & Drop */}
       <div
         className="upload-box"
         onDragOver={(e) => e.preventDefault()}
@@ -57,8 +55,6 @@ export default function Upload() {
           </>
         )}
       </div>
-
-      {/* Progress */}
       {uploading && (
         <div className="progress-wrapper">
           <div className="progress-bar">
