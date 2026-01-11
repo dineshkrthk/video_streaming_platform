@@ -1,5 +1,7 @@
 flask
 flask-cors
-pillow
+python-dotenv
 numpy
+pillow
 tensorflow-cpu
+opencv-python-headless
